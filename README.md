@@ -9,6 +9,9 @@ Join the official sunnypilot Discord server to stay up to date with all the late
 
   ![](https://dcbadge.vercel.app/api/server/wRW3meAgtx?style=flat) ![Discord Shield](https://discordapp.com/api/guilds/880416502577266699/widget.png?style=shield)
 
+## payton-connect
+payton-connect is an add-on to Sunnypilot that lets you control your navigation from anywhere in the world, without needing to be on the same local network as openpilot
+
 ## Documentation
 https://docs.sunnypilot.ai/ is your one stop shop for everything from features to installation to FAQ about the sunnypilot
 

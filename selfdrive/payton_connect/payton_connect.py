@@ -79,7 +79,7 @@ async def connect_and_listen(ws_url: str, http_session: aiohttp.ClientSession):
     log_message(f"Attempting to connect to ws: {ws_url}...")
     ws = None # Initialize ws to None
     try:
-        ws = await websockets.connect(ws_url, ping_interval=20, ping_timeout=20)
+        ws = await websockets.connect(f"{ws_url}/{dongle_id}", ping_interval=20, ping_timeout=20)
 
         log_message(f"Connected to ws: {ws_url}")
         dongle_id_str = dongle_id.decode('utf-8') if isinstance(dongle_id, bytes) else str(dongle_id)

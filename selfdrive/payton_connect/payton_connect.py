@@ -23,7 +23,7 @@ dongle_id = Params().get("DongleId")
 
 # --- config ---
 # Use secure websockets by default
-DEFAULT_WS_SERVER = "ws://connect.paytondev.cloud/connect" # Default URL
+DEFAULT_WS_SERVER = "wss://connect.paytondev.cloud/connect" # Default URL
 LOCAL_API_BASE = "http://127.0.0.1:8082" # base url for sunnypilot api
 # MAX_CONN_RETRIES = 30 # Max attempts before giving up (User rejected this)
 

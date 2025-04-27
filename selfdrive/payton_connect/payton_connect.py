@@ -83,9 +83,9 @@ async def connect_and_listen(ws_url: str, http_session: aiohttp.ClientSession):
 
         log_message(f"Connected to ws: {ws_url}")
         dongle_id_str = dongle_id.decode('utf-8') if isinstance(dongle_id, bytes) else str(dongle_id)
-
+        log_message(f"Sending dongle_id: {dongle_id_str}")
         await ws.send(dongle_id_str)
-
+        log_message(f"Dongle_id sent")
         while True: # Loop until connection closes or error
             try:
                 msg = await ws.recv()

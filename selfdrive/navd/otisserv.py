@@ -436,17 +436,35 @@ class OtisServ(BaseHTTPRequestHandler):
             api_cache = json.loads(api_cache_param.rstrip('\x00'))
             # Use a tolerance for float comparison
             tolerance = 1e-6
+            found_match = False
+            preferred_match = None # Store the best match found so far
+
             for dest in api_cache:
                 if (isinstance(dest.get("latitude"), (int, float)) and
                         isinstance(dest.get("longitude"), (int, float)) and
                         abs(dest["latitude"] - current_lat) < tolerance and
                         abs(dest["longitude"] - current_lon) < tolerance):
-                    saved_dest_details["save_type"] = dest.get("save_type")
-                    saved_dest_details["label"] = dest.get("label")
-                    # Update place_name from cache if available and current one is empty
-                    if not saved_dest_details["place_name"] and dest.get("place_name"):
-                       saved_dest_details["place_name"] = dest.get("place_name")
-                    break # Found the matching destination
+
+                    # First match found
+                    if not found_match:
+                        preferred_match = dest
+                        found_match = True
+                    # If we already found a match, but this one is a favorite (not recent), prefer it
+                    elif preferred_match and dest.get("save_type") != "recent": # Check preferred_match exists
+                        preferred_match = dest
+                        # If this is a favorite, we can stop searching, as it's preferred
+                        break
+                    # If the current preferred_match is recent, and this new match is also recent,
+                    # keep the first one found (which might be newer if recents are inserted at the start)
+                    # No action needed here, preferred_match remains the first recent found.
+
+            # After the loop, if a match was found, use preferred_match
+            if preferred_match:
+                saved_dest_details["save_type"] = preferred_match.get("save_type")
+                saved_dest_details["label"] = preferred_match.get("label")
+                if not saved_dest_details["place_name"] and preferred_match.get("place_name"):
+                   saved_dest_details["place_name"] = preferred_match.get("place_name")
+
         except json.JSONDecodeError:
             cloudlog.exception("otisserv: failed to parse ApiCache_NavDestinations")
             # Proceed without save_type/label if cache is corrupt

@@ -129,6 +129,10 @@ class OtisServ(BaseHTTPRequestHandler):
     if self.path == '/get_destination':
       self.get_current_destination_details()
       return
+
+    if self.path == '/device':
+      self.get_device_info()
+      return
     # --- End New Endpoints ---
 
   def do_POST(self):
@@ -394,6 +398,46 @@ class OtisServ(BaseHTTPRequestHandler):
       postvars = {}
     return postvars
 
+  # --- Helper for finding cached details ---
+  def _find_cached_destination_details(self, current_lat, current_lon):
+      api_cache_param = params.get("ApiCache_NavDestinations", encoding='utf8')
+      if not api_cache_param:
+          return None
+
+      try:
+          api_cache = json.loads(api_cache_param.rstrip('\x00'))
+          tolerance = 1e-6
+          found_match = False
+          preferred_match = None
+
+          for dest in api_cache:
+              if (isinstance(dest.get("latitude"), (int, float)) and
+                      isinstance(dest.get("longitude"), (int, float)) and
+                      abs(dest["latitude"] - current_lat) < tolerance and
+                      abs(dest["longitude"] - current_lon) < tolerance):
+
+                  if not found_match:
+                      preferred_match = dest
+                      found_match = True
+                  elif preferred_match and dest.get("save_type") != "recent":
+                      preferred_match = dest
+                      if dest.get("save_type") != "recent": # Prioritize non-recent
+                          break # Found the best possible match
+
+          if preferred_match:
+              return {
+                  "save_type": preferred_match.get("save_type"),
+                  "label": preferred_match.get("label"),
+                  "place_name": preferred_match.get("place_name") # Return cached name too
+              }
+          else:
+              return None # No match found
+
+      except json.JSONDecodeError:
+          cloudlog.exception("otisserv: failed to parse ApiCache_NavDestinations in helper")
+          return None
+  # --- End Helper ---
+
   def get_current_destination_details(self):
     nav_destination_param = params.get("NavDestination", encoding='utf8')
     if not nav_destination_param:
@@ -422,7 +466,7 @@ class OtisServ(BaseHTTPRequestHandler):
         self.wfile.write(json.dumps({'error': 'Current destination data is incomplete.'}).encode('utf-8'))
         return
 
-    # Try to find matching saved destination details
+    # Try to find matching saved destination details using the helper
     saved_dest_details = {
         "latitude": current_lat,
         "longitude": current_lon,
@@ -430,44 +474,18 @@ class OtisServ(BaseHTTPRequestHandler):
         "save_type": None,
         "label": None
     }
-    api_cache_param = params.get("ApiCache_NavDestinations", encoding='utf8')
-    if api_cache_param:
-        try:
-            api_cache = json.loads(api_cache_param.rstrip('\x00'))
-            # Use a tolerance for float comparison
-            tolerance = 1e-6
-            found_match = False
-            preferred_match = None # Store the best match found so far
 
-            for dest in api_cache:
-                if (isinstance(dest.get("latitude"), (int, float)) and
-                        isinstance(dest.get("longitude"), (int, float)) and
-                        abs(dest["latitude"] - current_lat) < tolerance and
-                        abs(dest["longitude"] - current_lon) < tolerance):
+    cached_details = self._find_cached_destination_details(current_lat, current_lon)
+    if cached_details:
+        saved_dest_details["save_type"] = cached_details.get("save_type")
+        saved_dest_details["label"] = cached_details.get("label")
+        # Update place_name from cache if current one is empty or cache has one
+        if not saved_dest_details["place_name"] and cached_details.get("place_name"):
+            saved_dest_details["place_name"] = cached_details.get("place_name")
+        # Or if the cached name is different (e.g., user edited label)
+        elif cached_details.get("place_name") and saved_dest_details["place_name"] != cached_details.get("place_name"):
+             saved_dest_details["place_name"] = cached_details.get("place_name")
 
-                    # First match found
-                    if not found_match:
-                        preferred_match = dest
-                        found_match = True
-                    # If we already found a match, but this one is a favorite (not recent), prefer it
-                    elif preferred_match and dest.get("save_type") != "recent": # Check preferred_match exists
-                        preferred_match = dest
-                        # If this is a favorite, we can stop searching, as it's preferred
-                        break
-                    # If the current preferred_match is recent, and this new match is also recent,
-                    # keep the first one found (which might be newer if recents are inserted at the start)
-                    # No action needed here, preferred_match remains the first recent found.
-
-            # After the loop, if a match was found, use preferred_match
-            if preferred_match:
-                saved_dest_details["save_type"] = preferred_match.get("save_type")
-                saved_dest_details["label"] = preferred_match.get("label")
-                if not saved_dest_details["place_name"] and preferred_match.get("place_name"):
-                   saved_dest_details["place_name"] = preferred_match.get("place_name")
-
-        except json.JSONDecodeError:
-            cloudlog.exception("otisserv: failed to parse ApiCache_NavDestinations")
-            # Proceed without save_type/label if cache is corrupt
 
     self.send_response(200)
     self.send_header("Content-type", "application/json")
@@ -540,6 +558,63 @@ class OtisServ(BaseHTTPRequestHandler):
       dests[id] = new_dest
 
     params.put("ApiCache_NavDestinations", json.dumps(dests).rstrip("\n\r"))
+
+  def get_device_info(self):
+    dongle_id = params.get("DongleId", encoding='utf-8')
+    if dongle_id is None:
+        dongle_id = "Error fetching DongleId"
+
+    locations = []
+    api_cache_param = params.get("ApiCache_NavDestinations", encoding='utf8')
+    if api_cache_param:
+        try:
+            locations = json.loads(api_cache_param.rstrip('\x00'))
+        except json.JSONDecodeError:
+            cloudlog.exception("otisserv: failed to parse ApiCache_NavDestinations for /device")
+            locations = [] # Keep locations empty on error
+
+    destination = None
+    nav_destination_param = params.get("NavDestination", encoding='utf8')
+    if nav_destination_param:
+        try:
+            current_dest_data = json.loads(nav_destination_param)
+            lat = current_dest_data.get("latitude")
+            lon = current_dest_data.get("longitude")
+            name = current_dest_data.get("place_name", "")
+
+            if lat is not None and lon is not None:
+                destination = {
+                    "latitude": lat,
+                    "longitude": lon,
+                    "place_name": name,
+                    "save_type": None,
+                    "label": None
+                }
+                cached_details = self._find_cached_destination_details(lat, lon)
+                if cached_details:
+                    destination["save_type"] = cached_details.get("save_type")
+                    destination["label"] = cached_details.get("label")
+                    # Update place_name if current is empty or cache has one
+                    if not destination["place_name"] and cached_details.get("place_name"):
+                         destination["place_name"] = cached_details.get("place_name")
+                    elif cached_details.get("place_name") and destination["place_name"] != cached_details.get("place_name"):
+                         destination["place_name"] = cached_details.get("place_name")
+
+        except json.JSONDecodeError:
+            cloudlog.exception("otisserv: failed to parse NavDestination for /device")
+            destination = None # Set destination to None on error
+
+    response_data = {
+        "dongleId": dongle_id,
+        "locations": locations,
+        "destination": destination,
+        "online": True
+    }
+
+    self.send_response(200)
+    self.send_header("Content-type", "application/json")
+    self.end_headers()
+    self.wfile.write(json.dumps(response_data).encode('utf-8'))
 
 def main():
   try:

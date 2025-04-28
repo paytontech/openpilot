@@ -270,9 +270,15 @@ class OtisServ(BaseHTTPRequestHandler):
   def get_locations(self):
     self.send_response(200)
     self.send_header('Content-type','application/json')
+    self.end_headers()
     val = params.get("ApiCache_NavDestinations", encoding='utf-8')
     if val is not None:
-      self.wfile.write(val.encode('utf-8'))
+        # Ensure null characters are handled if they exist from direct Param edits
+        val = val.rstrip('\x00')
+        self.wfile.write(val.encode('utf-8'))
+    else:
+        # Return an empty list if the param is not set
+        self.wfile.write(b'[]')
 
   def get_gmap_css(self):
     self.wfile.write(bytes(self.get_parsed_template("gmap/style.css"), "utf-8"))

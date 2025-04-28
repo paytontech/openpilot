@@ -170,10 +170,7 @@ async def req_local_api(session: aiohttp.ClientSession, method: str, url: str, p
                  log_message(f"error from local API {url}. status: {resp.status}, response: {resp_text}")
             else:
                  log_message(f"successfully called local API {url}. status: {resp.status}, response: {resp_text}")
-                 if socket and not socket.closed:
-                     await socket.send(resp_text)
-                 else:
-                     log_message(f"Cannot send local API response back, websocket closed.")
+                 await socket.send(resp_text)
 
     except asyncio.TimeoutError:
         log_message(f"Timeout during local API call to {url} (likely internal aiohttp timeout).")

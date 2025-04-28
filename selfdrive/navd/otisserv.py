@@ -48,92 +48,92 @@ class OtisServ(BaseHTTPRequestHandler):
     use_amap = params.get_bool("EnableAmap")
     use_gmap = not use_amap and params.get_bool("EnableGmap")
 
+    # --- Handle specific API/asset endpoints first ---
     if self.path == '/logo.png':
       self.get_logo()
-      return
-    if self.path == '/?reset=1':
-      params.put("NavDestination", "")
+      return  # Ensure early return for specific paths
     if self.path == '/locations':
       self.get_locations()
-      return
-    elif use_amap:
-      if self.path == '/style.css':
-        self.send_response(200)
-        self.send_header("Content-type", "text/css")
-        self.end_headers()
-        self.get_amap_css()
-        return
-      elif self.path == '/index.js':
-        self.send_response(200)
-        self.send_header("Content-type", "text/javascript")
-        self.end_headers()
-        self.get_amap_js()
-        return
-      else:
-        self.send_response(200)
-        self.send_header("Content-type", "text/html")
-        self.end_headers()
-        if self.get_amap_key() is None or self.get_amap_key_2() is None:
-          self.display_page_amap_key()
-          return
-        if self.get_app_token() is None:
-          self.display_page_app_token()
-          return
-        self.display_page_amap()
-    elif use_gmap:
-      if self.path == '/style.css':
-        self.send_response(200)
-        self.send_header("Content-type", "text/css")
-        self.end_headers()
-        self.get_gmap_css()
-        return
-      elif self.path == '/index.js':
-        self.send_response(200)
-        self.send_header("Content-type", "text/javascript")
-        self.end_headers()
-        self.get_gmap_js()
-        return
-      else:
-        self.send_response(200)
-        self.send_header("Content-type", "text/html")
-        self.end_headers()
-        if self.get_gmap_key() is None:
-          self.display_page_gmap_key()
-          return
-        if self.get_app_token() is None:
-          self.display_page_app_token()
-          return
-        self.display_page_gmap()
-    else:
-      self.send_response(200)
-      self.send_header("Content-type", "text/html")
-      self.end_headers()
-      if self.get_public_token() is None:
-        self.display_page_public_token()
-        return
-      if self.get_app_token() is None:
-        self.display_page_app_token()
-        return
-      if self.path != '/locations':
-        self.display_page_addr_input()
-
-    # --- New Endpoints ---
+      return  # Ensure early return
     if self.path == '/clear_destination':
       params.put("NavDestination", "")
       self.send_response(200)
       self.send_header("Content-type", "application/json")
       self.end_headers()
       self.wfile.write(json.dumps({'success': True, 'message': 'Navigation destination cleared.'}).encode('utf-8'))
-      return
-
+      return  # Ensure early return
     if self.path == '/get_destination':
       self.get_current_destination_details()
-      return
-
+      return  # Ensure early return
     if self.path == '/device':
       self.get_device_info()
-      return
-    # --- End New Endpoints ---
+      return  # Ensure early return
+    # --- End specific API/asset endpoints ---
+
+    # --- Handle other specific non-HTML requests ---
+    if self.path == '/style.css':
+      self.send_response(200)
+      self.send_header("Content-type", "text/css")
+      self.end_headers()
+      if use_amap:
+        self.get_amap_css()
+      elif use_gmap:
+        self.get_gmap_css()
+      # else: No default CSS needed for Mapbox addr input
+      return # Return after sending CSS
+    elif self.path == '/index.js':
+      self.send_response(200)
+      self.send_header("Content-type", "text/javascript")
+      self.end_headers()
+      if use_amap:
+        self.get_amap_js()
+      elif use_gmap:
+        self.get_gmap_js()
+      # else: No default JS needed for Mapbox addr input
+      return # Return after sending JS
+
+    if self.path == '/?.reset=1': # Note: was /?.reset=1, ensure correct path if needed
+      params.put("NavDestination", "")
+      # Optional: Redirect or show a minimal confirmation page
+      # Redirect example:
+      # self.send_response(302)
+      # self.send_header('Location', '/')
+      # self.end_headers()
+      # return
+      # For now, just setting the param and letting it fall through to display the main page below
+
+    # --- Handle full HTML page rendering --- 
+    # If we reach here, it's a request for an HTML page ('/' or similar)
+    self.send_response(200)
+    self.send_header("Content-type", "text/html")
+    self.end_headers() # Headers sent for HTML page
+
+    if use_amap:
+      if self.get_amap_key() is None or self.get_amap_key_2() is None:
+        self.display_page_amap_key()
+      elif self.get_app_token() is None:
+        self.display_page_app_token()
+      else:
+        self.display_page_amap()
+    elif use_gmap:
+      if self.get_gmap_key() is None:
+        self.display_page_gmap_key()
+      elif self.get_app_token() is None:
+        self.display_page_app_token()
+      else:
+        self.display_page_gmap()
+    else: # Default Mapbox/addr input view
+      if self.get_public_token() is None:
+        self.display_page_public_token()
+      elif self.get_app_token() is None:
+        self.display_page_app_token()
+      else:
+        # The path check '!= /locations' etc. is no longer needed here
+        # because those specific paths are handled and returned above.
+        self.display_page_addr_input()
+
+    # No need for a final return here, as BaseHTTPRequestHandler handles it
+    # after do_GET finishes for HTML pages.
 
   def do_POST(self):
     use_amap = params.get_bool("EnableAmap")

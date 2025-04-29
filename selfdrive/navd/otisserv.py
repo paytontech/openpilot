@@ -65,7 +65,8 @@ class OtisServ(BaseHTTPRequestHandler):
     if self.path == '/get_destination':
       self.get_current_destination_details()
       return  # Ensure early return
-    if self.path == '/device':
+    # Handle /device endpoint, ignoring query params and trailing slash
+    if self.path.split('?')[0].rstrip('/') == '/device':
       self.get_device_info()
       return  # Ensure early return
     # --- End specific API/asset endpoints ---

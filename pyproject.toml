@@ -64,7 +64,8 @@ dependencies = [
   "zstandard",
 
   "pydantic",
-   "tenacity"
+   "tenacity",
+   "websockets"
 ]
 
 [project.optional-dependencies]

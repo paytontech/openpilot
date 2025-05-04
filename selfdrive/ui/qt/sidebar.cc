@@ -89,7 +89,7 @@ void Sidebar::updateState(const UIState &s) {
   //                       : ItemStatus{{tr("CONNECT"), tr("ERROR")}, danger_color};
   // }
   //show current time
-  connectStatus = ItemStatus({tr("TIME"), tr(QTime::currentTime().toString("hh:mm AP"))}, good_color);
+  connectStatus = ItemStatus({tr("Time"), QTime::currentTime().toString("hh:mm AP")}, good_color);
   setProperty("connectStatus", QVariant::fromValue(connectStatus));
 
 #ifndef SUNNYPILOT

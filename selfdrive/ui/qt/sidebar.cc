@@ -81,13 +81,15 @@ void Sidebar::updateState(const UIState &s) {
 
   ItemStatus connectStatus;
   auto last_ping = deviceState.getLastAthenaPingTime();
-  if (last_ping == 0) {
-    connectStatus = ItemStatus{{tr("CONNECT"), tr("OFFLINE")}, warning_color};
-  } else {
-    connectStatus = nanos_since_boot() - last_ping < 80e9
-                        ? ItemStatus{{tr("CONNECT"), tr("ONLINE")}, good_color}
-                        : ItemStatus{{tr("CONNECT"), tr("ERROR")}, danger_color};
-  }
+  // if (last_ping == 0) {
+  //   connectStatus = ItemStatus{{tr("CONNECT"), tr("OFFLINE")}, warning_color};
+  // } else {
+  //   connectStatus = nanos_since_boot() - last_ping < 80e9
+  //                       ? ItemStatus{{tr("CONNECT"), tr("ONLINE")}, good_color}
+  //                       : ItemStatus{{tr("CONNECT"), tr("ERROR")}, danger_color};
+  // }
+  //show current time
+  connectStatus = ItemStatus({tr("TIME"), tr(QTime::currentTime().toString("hh:mm AP"))}, good_color);
   setProperty("connectStatus", QVariant::fromValue(connectStatus));
 
 #ifndef SUNNYPILOT

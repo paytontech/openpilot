@@ -1,4 +1,27 @@
 #!/usr/bin/env python3
+import sys
+import subprocess
+import importlib.util
+
+def install_package(package_name: str) -> None:
+    print(f"Installing {package_name}...")
+    subprocess.check_call([sys.executable, "-m", "pip", "install", package_name])
+
+# Check and install required packages
+required_packages = {
+    "websockets": "websockets",
+    "pydantic": "pydantic",
+    "tenacity": "tenacity",
+    "aiohttp": "aiohttp"
+}
+
+for module_name, package_name in required_packages.items():
+    if importlib.util.find_spec(module_name) is None:
+        print(f"{module_name} not found. Installing...")
+        install_package(package_name)
+        print(f"{module_name} installed successfully.")
+
+# Now import all required packages
 import asyncio
 import websockets
 import aiohttp # use async http client

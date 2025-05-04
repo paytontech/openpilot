@@ -2,9 +2,11 @@
 import sys
 import subprocess
 import importlib.util
+import os
+from selfdrive.payton_connect.payton_logger import log_message
 
 def install_package(package_name: str) -> None:
-    print(f"Installing {package_name}...")
+    log_message(f"Installing {package_name}...")
     subprocess.check_call([sys.executable, "-m", "pip", "install", package_name])
 
 # Check and install required packages
@@ -15,11 +17,21 @@ required_packages = {
     "aiohttp": "aiohttp"
 }
 
+# Check if we need to install any packages
+needs_install = False
+missing_packages = []
 for module_name, package_name in required_packages.items():
     if importlib.util.find_spec(module_name) is None:
-        print(f"{module_name} not found. Installing...")
+        needs_install = True
+        missing_packages.append(package_name)
+
+# If we need to install packages, do so and restart
+if needs_install:
+    log_message("Missing required packages. Installing:", ", ".join(missing_packages))
+    for package_name in missing_packages:
         install_package(package_name)
-        print(f"{module_name} installed successfully.")
+    log_message("All required packages installed. Restarting script...")
+    os.execv(sys.executable, ['python'] + sys.argv)
 
 # Now import all required packages
 import asyncio
@@ -40,7 +52,7 @@ import pydantic
 # --- End New Imports ---
 
 from openpilot.common.params import Params
-from selfdrive.payton_connect.payton_logger import log_message # Import the new logger
+ # Import the new logger
 
 dongle_id = Params().get("DongleId")
 

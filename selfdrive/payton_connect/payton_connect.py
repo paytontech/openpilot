@@ -83,7 +83,8 @@ async def connect_and_listen(ws_url: str, http_session: aiohttp.ClientSession):
         ws = await websockets.connect(f"{ws_url}/{dongle_id_str}", ping_interval=20, ping_timeout=20)
 
         log_message(f"Connected to ws: {ws_url}")
-        Params().put("ScufflinkOnline", "1")
+        Params().put_bool("ScufflinkOnline", True)
+        log_message("Set ScufflinkOnline to 1 (connected)")
 
         log_message(f"Sending dongle_id: {dongle_id_str}")
         await ws.send(dongle_id_str)
@@ -120,11 +121,9 @@ async def connect_and_listen(ws_url: str, http_session: aiohttp.ClientSession):
                 log_message(f"ws msg decode failed (not json?): {msg}")
             except websockets.exceptions.ConnectionClosed:
                 log_message("WebSocket connection closed during receive.")
-                Params().put("ScufflinkOnline", "0")
                 raise # Re-raise to be caught by run_client
             except asyncio.CancelledError:
                 log_message("Receive loop cancelled.")
-                Params().put("ScufflinkOnline", "0")
                 raise # Propagate cancellation
             except Exception as e:
                 log_message(f"Error processing ws message: {e}")
@@ -133,28 +132,31 @@ async def connect_and_listen(ws_url: str, http_session: aiohttp.ClientSession):
                 # Continue processing other messages if possible, depends on error type
 
     except websockets.exceptions.InvalidURI:
+        Params().put_bool("ScufflinkOnline", False)
+        log_message("Set ScufflinkOnline to 0 (InvalidURI/disconnect)")
         log_message(f"Fatal: Invalid WebSocket URI: {ws_url}")
-        Params().put("ScufflinkOnline", "0")
         raise # Let run_client handle exit
     except ConnectionRefusedError:
+        Params().put_bool("ScufflinkOnline", False)
+        log_message("Set ScufflinkOnline to 0 (ConnectionRefused/disconnect)")
         log_message(f"Connection refused by {ws_url}")
-        Params().put("ScufflinkOnline", "0")
         raise # Let run_client handle retry
     except (socket.gaierror, OSError) as e:
+        Params().put_bool("ScufflinkOnline", False)
+        log_message("Set ScufflinkOnline to 0 (Network/OS error/disconnect)")
         log_message(f"Network/OS error during connect/initial send: {e}")
-        Params().put("ScufflinkOnline", "0")
         raise # Let run_client handle retry
     except asyncio.CancelledError:
+        Params().put_bool("ScufflinkOnline", False)
+        log_message("Set ScufflinkOnline to 0 (Cancelled/disconnect)")
         log_message("Connection/Listen task cancelled.")
-        Params().put("ScufflinkOnline", "0")
-        if ws and not ws.closed:
-            await ws.close(code=1001, reason="Client shutting down")
+        await ws.close(code=1001, reason="Client shutting down")
         raise # Propagate cancellation
     except Exception as e:
+        Params().put_bool("ScufflinkOnline", False)
+        log_message("Set ScufflinkOnline to 0 (Unexpected error/disconnect)")
         log_message(f"Unexpected error in connect_and_listen setup: {e}")
-        Params().put("ScufflinkOnline", "0")
-        if ws and not ws.closed:
-             await ws.close(code=1011, reason="Unexpected client error")
+        await ws.close(code=1011, reason="Unexpected client error")
         raise # Propagate to run_client
 
 

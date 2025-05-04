@@ -119,7 +119,7 @@ void SidebarSP::updateState(const UIStateSP &s) {
     status = elapsed_sunnylink_ping < 80000000000ULL ? tr("ONLINE") : tr("ERROR");
     color = elapsed_sunnylink_ping < 80000000000ULL ? good_color : danger_color;
   }
-  sunnylinkStatus = ItemStatus{{tr("SUNNYLINK"), status}, color };
+  sunnylinkStatus = ItemStatus{{tr("SCUFFLINK"), status}, color };
   setProperty("sunnylinkStatus", QVariant::fromValue(sunnylinkStatus));
 }
 

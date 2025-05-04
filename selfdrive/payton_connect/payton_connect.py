@@ -27,8 +27,9 @@ for module_name, package_name in required_packages.items():
 
 # If we need to install packages, do so and restart
 if needs_install:
-    log_message("Missing required packages. Installing:", ", ".join(missing_packages))
+    log_message("Missing required packages. Installing:")
     for package_name in missing_packages:
+        log_message(f"  {package_name}")
         install_package(package_name)
     log_message("All required packages installed. Restarting script...")
     os.execv(sys.executable, ['python'] + sys.argv)

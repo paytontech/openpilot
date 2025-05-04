@@ -140,6 +140,47 @@ class OtisServ(BaseHTTPRequestHandler):
     use_gmap = not use_amap and params.get_bool("EnableGmap")
 
     postvars = self.parse_POST()
+    # set_properties endpoint: accept a full destination object and update history
+    if self.path == '/set_properties':
+      # postvars is a dict (from JSON or form)
+      dest = postvars or {}
+      # Validate and extract fields
+      try:
+        lat = float(dest.get('latitude', 0))
+        lon = float(dest.get('longitude', 0))
+        place_name = dest.get('place_name', '')
+        save_type = dest.get('save_type', '')
+        label = dest.get('label', '')
+      except Exception:
+        self.send_response(400)
+        self.send_header('Content-type', 'application/json')
+        self.end_headers()
+        self.wfile.write(json.dumps({'success': False, 'error': 'Invalid parameters'}).encode('utf-8'))
+        return
+      # Load existing history
+      val = params.get('ApiCache_NavDestinations', encoding='utf8')
+      if val:
+        val = val.rstrip('\x00')
+        locations = json.loads(val)
+      else:
+        locations = []
+      # Remove any entry matching same coordinates
+      locations = [d for d in locations if not (d.get('latitude') == lat and d.get('longitude') == lon)]
+      # Build new entry
+      new_entry = {'latitude': lat, 'longitude': lon, 'place_name': place_name, 'save_type': save_type}
+      # If marking home/work or a favorite, attach label
+      if save_type in ('home', 'work') or save_type == 'favorite':
+        new_entry['save_type'] = 'favorite'
+        new_entry['label'] = label or save_type
+      # Append new and persist
+      locations.append(new_entry)
+      params.put('ApiCache_NavDestinations', json.dumps(locations).rstrip("\n\r"))
+      # Respond with updated list
+      self.send_response(200)
+      self.send_header('Content-type', 'application/json')
+      self.end_headers()
+      self.wfile.write(json.dumps({'success': True, 'locations': locations}).encode('utf-8'))
+      return
     # set_destination endpoint
     if self.path == '/set_destination':
       self.send_response(200)

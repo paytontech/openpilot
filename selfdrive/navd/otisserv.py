@@ -56,7 +56,25 @@ class OtisServ(BaseHTTPRequestHandler):
     if self.path == '/locations':
       self.get_locations()
       return
-    elif use_amap:
+
+    # --- JSON Endpoints ---
+    if self.path == '/clear_destination':
+      params.put("NavDestination", "")
+      self.send_response(200)
+      self.send_header("Content-type", "application/json")
+      self.end_headers()
+      self.wfile.write(json.dumps({'success': True, 'message': 'Navigation destination cleared.'}).encode('utf-8'))
+      return
+
+    if self.path == '/get_destination':
+      self.get_current_destination_details()
+      return
+
+    if self.path == '/device':
+      self.get_device_info()
+      return
+
+    if use_amap:
       if self.path == '/style.css':
         self.send_response(200)
         self.send_header("Content-type", "text/css")
@@ -116,24 +134,6 @@ class OtisServ(BaseHTTPRequestHandler):
         return
       if self.path != '/locations':
         self.display_page_addr_input()
-
-    # --- New Endpoints ---
-    if self.path == '/clear_destination':
-      params.put("NavDestination", "")
-      self.send_response(200)
-      self.send_header("Content-type", "application/json")
-      self.end_headers()
-      self.wfile.write(json.dumps({'success': True, 'message': 'Navigation destination cleared.'}).encode('utf-8'))
-      return
-
-    if self.path == '/get_destination':
-      self.get_current_destination_details()
-      return
-
-    if self.path == '/device':
-      self.get_device_info()
-      return
-    # --- End New Endpoints ---
 
   def do_POST(self):
     use_amap = params.get_bool("EnableAmap")

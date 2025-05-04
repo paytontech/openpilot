@@ -80,7 +80,7 @@ void Sidebar::updateState(const UIState &s) {
   setProperty("netStrength", strength > 0 ? strength + 1 : 0);
 
   ItemStatus connectStatus;
-  auto last_ping = deviceState.getLastAthenaPingTime();
+  // auto last_ping = deviceState.getLastAthenaPingTime();
   // if (last_ping == 0) {
   //   connectStatus = ItemStatus{{tr("CONNECT"), tr("OFFLINE")}, warning_color};
   // } else {

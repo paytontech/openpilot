@@ -122,6 +122,9 @@ procs = [
   # sunnylink <3
   DaemonProcess("manage_sunnylinkd", "system.athena.manage_sunnylinkd", "SunnylinkdPid"),
   PythonProcess("sunnylink_registration", "system.manager.sunnylink", sunnylink_need_register_shim),
+
+  # scufflink :3
+  PythonProcess("scufflink", "selfdrive.payton_connect.payton_connect", always_run),
 ]
 
 if os.path.exists("./gitlab_runner.sh"):

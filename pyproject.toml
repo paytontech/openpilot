@@ -62,6 +62,9 @@ dependencies = [
 
   # logreader
   "zstandard",
+
+  "pydantic",
+   "tenacity"
 ]
 
 [project.optional-dependencies]

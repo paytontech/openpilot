@@ -101,23 +101,21 @@ void SidebarSP::updateState(const UIStateSP &s) {
   setProperty("tempStatus", QVariant::fromValue(tempStatus));
 
   ItemStatus sunnylinkStatus;
-  auto sl_dongle_id = getSunnylinkDongleId();
-  auto last_sunnylink_ping_str = params.get("LastSunnylinkPingTime");
-  auto last_sunnylink_ping = std::stoull(last_sunnylink_ping_str.empty() ? "0" : last_sunnylink_ping_str);
-  auto elapsed_sunnylink_ping = nanos_since_boot() - last_sunnylink_ping;
-  auto sunnylink_enabled = params.getBool("SunnylinkEnabled");
-
+  // auto sl_dongle_id = getSunnylinkDongleId();
+  // auto last_sunnylink_ping_str = params.get("LastSunnylinkPingTime");
+  // auto last_sunnylink_ping = std::stoull(last_sunnylink_ping_str.empty() ? "0" : last_sunnylink_ping_str);
+  // auto elapsed_sunnylink_ping = nanos_since_boot() - last_sunnylink_ping;
+  // auto sunnylink_enabled = params.getBool("SunnylinkEnabled");
+  auto scufflink_online = params.getBool("ScufflinkOnline");
   QString status = tr("DISABLED");
   QColor color = disabled_color;
 
-  if (sunnylink_enabled && last_sunnylink_ping == 0) {
-    // If sunnylink is enabled, but we don't have a dongle id, and we haven't received a ping yet, we are registering
-    status = sl_dongle_id.has_value() ? tr("DOWN") : tr("REGIST...");
-    color = sl_dongle_id.has_value() ? warning_color : progress_color;
-  } else if (sunnylink_enabled) {
-    // If sunnylink is enabled, we are considered online if we have received a ping in the last 80 seconds, else error.
-    status = elapsed_sunnylink_ping < 80000000000ULL ? tr("UP") : tr("BROKE");
-    color = elapsed_sunnylink_ping < 80000000000ULL ? good_color : danger_color;
+  if (scufflink_online) {
+    status = tr("ONLINE");
+    color = good_color;
+  } else {
+    status = tr("OFFLINE");
+    color = warning_color;
   }
   sunnylinkStatus = ItemStatus{{tr("SCUFFLINK"), status}, color };
   setProperty("sunnylinkStatus", QVariant::fromValue(sunnylinkStatus));

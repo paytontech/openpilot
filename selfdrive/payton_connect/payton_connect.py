@@ -335,6 +335,12 @@ def main():
         log_message(f"missing dependency: {e}. please install required packages (websockets, aiohttp, tenacity, pydantic).")
         sys.exit(1)
 
+    # Ensure ScufflinkOnline param starts as False (0)
+    try:
+        Params().put_bool("ScufflinkOnline", False)
+    except Exception as e:
+        log_message(f"Failed to set default ScufflinkOnline param: {e}")
+
     try:
         asyncio.run(wait_for_internet())
         log_message("Internet connection established.")

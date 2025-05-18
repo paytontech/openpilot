@@ -30,6 +30,7 @@ private:
   float dm_fade_state = 1.0;
   bool v_ego_cluster_seen = false;
   int status = STATUS_DISENGAGED;
+  bool is_parked = false;
   std::unique_ptr<PubMaster> pm;
 
   int skip_frame_count = 0;

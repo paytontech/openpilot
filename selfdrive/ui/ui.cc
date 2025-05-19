@@ -196,6 +196,15 @@ void update_state(UIState *s) {
   if (sm.updated("carParams")) {
     scene.longitudinal_control = sm["carParams"].getCarParams().getOpenpilotLongitudinalControl();
   }
+
+  bool car_in_park = false;
+  // Check if carState is alive and valid before accessing.
+  // It might not be immediately available on startup or in certain conditions.
+  if (sm.allAliveAndValid({"carState"})) {
+    auto car_state = sm["carState"].getCarState();
+    car_in_park = car_state.getGearShifter() == cereal::CarState::GearShifter::PARK;
+  }
+
   if (sm.updated("wideRoadCameraState")) {
     auto cam_state = sm["wideRoadCameraState"].getWideRoadCameraState();
     float scale = (cam_state.getSensor() == cereal::FrameData::ImageSensor::AR0231) ? 6.0f : 1.0f;
@@ -203,7 +212,7 @@ void update_state(UIState *s) {
   } else if (!sm.allAliveAndValid({"wideRoadCameraState"})) {
     scene.light_sensor = -1;
   }
-  scene.started = sm["deviceState"].getDeviceState().getStarted() && scene.ignition;
+  scene.started = sm["deviceState"].getDeviceState().getStarted() && scene.ignition && !car_in_park;
 
   scene.world_objects_visible = scene.world_objects_visible ||
                                 (scene.started &&
@@ -340,7 +349,7 @@ void Device::updateBrightness(const UIState &s) {
     clipped_brightness = std::clamp(100.0f * clipped_brightness, 5.0f, 100.0f);
   }
   RETURN_IF_SUNNYPILOT
-  
+
   int brightness = brightness_filter.update(clipped_brightness);
   if (!awake) {
     brightness = 0;

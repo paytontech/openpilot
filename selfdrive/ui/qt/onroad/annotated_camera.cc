@@ -1,7 +1,6 @@
 #include "selfdrive/ui/qt/onroad/annotated_camera.h"
 
 #include <QPainter>
-#include <QTime>
 #include <algorithm>
 #include <cmath>
 
@@ -60,8 +59,6 @@ void AnnotatedCameraWidget::updateState(const UIState &s) {
   rightHandDM = dm_state.getIsRHD();
   // DM icon transition
   dm_fade_state = std::clamp(dm_fade_state+0.2*(0.5-dmActive), 0.0, 1.0);
-
-  is_parked = car_state.getGearShifter() == cereal::CarState::GearShifter::PARK;
 }
 
 void AnnotatedCameraWidget::drawHud(QPainter &p) {
@@ -296,18 +293,6 @@ void AnnotatedCameraWidget::paintGL() {
 
   QPainter painter(this);
   painter.setRenderHint(QPainter::Antialiasing);
-
-  if (is_parked) {
-    painter.fillRect(rect(), Qt::black);
-    painter.setPen(Qt::white);
-    painter.setFont(InterFont(150, QFont::Bold));
-    painter.drawText(rect(), Qt::AlignCenter, QTime::currentTime().toString("hh:mm AP"));
-    painter.setFont(InterFont(50));
-    painter.drawText(rect().adjusted(0, 200, 0, 0), Qt::AlignCenter, tr("Car parked"));
-    // For the parked screen, we don't need to display FPS or send uiDebug messages
-    // So we can return here.
-    return;
-  }
 
   // draw camera frame
   {
